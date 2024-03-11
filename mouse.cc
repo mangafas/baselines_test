@@ -34,6 +34,9 @@ public:
 	Mouse()
 	{
 		This.Add("angle", NearestAngleSensor<Cheese>());
+		//This.Add("nearestX", NearestXSensor<Cheese>());
+		//This.Add("nearestY", NearestYSensor<Cheese>());
+		//This.Add("density", DensitySensor<Cheese>());
 		This.InitRandom = true;
 	}
 
@@ -42,8 +45,23 @@ public:
 	virtual void Control()
 	{
 		double o = This.Sensors["angle"]->GetOutput();
+		//douuble adjo = std::sin(o);
+		//This.Controls["right"] = std::clamp(0.5 - adjo,0.0,1.0);
+		//This.Controls["left"] = std::clamp(0.5 + adjo,0.0,1.0);
 		This.Controls["right"] = 0.5 - (o > 0.0 ? o : 0.0);
 		This.Controls["left"] = 0.5 + (o < 0.0 ? o : 0.0);
+		//double nx = This.Sensors["nearestX"]->GetOutput();
+		//double ny = This.Sensors["nearestY"]->GetOutput();
+		//double de = This.Sensors["density"]->GetOutput();
+
+		//if (nearestX> 0) This.Controls["right"] = 0.5
+		//else if (nearestX < 0) This.Controls["left"] = 0.5
+
+		//if (nearestY> 0) This.Controls["up"] = 0.5
+		//else if (nearestY < 0) This.Controls["down"] = 0.5
+		
+		//double speed = max(0.1,1-density /10.0);
+		//This.Controls["speed"] = speedAdjust;
 	}
 
 	// This is called when a Mouse collides with any object in the World.
@@ -89,6 +107,8 @@ public:
 	virtual void Control()
 	{
 		This.myBrain.SetInput(0, This.Sensors["angle"]->GetOutput());
+		
+
 
 		This.myBrain.Fire();
 
@@ -111,12 +131,16 @@ public:
 	EvoMouse(): cheesesFound(0)
 	{
 		This.Add("angle", NearestAngleSensor<Cheese>());
+		//This.Add("nearestX", NearestXSensor<Cheese>());
+		//This.Add("nearestY", NearestYSensor<Cheese>());
+		//This.Add("density", DensitySensor<Cheese>(2*PI, 80.0, 0.0));
 // An alternative to the NearestAngleSensor is the Proximity Sensor, which
 // gives less precise directional information, but does let the mouse know
 // how far away the cheese is.
-//		This.Add("proximity", ProximitySensor<Cheese>(PI/8, 80.0, 0.0));
+		This.Add("proximity", ProximitySensor<Cheese>(2*PI, 80.0, 0.0));
 		This.InitRandom = true;
 		This.InitFFN(4);
+		
 	}
 
 	// This is identical to the OnCollision method for Mouse, except here we
@@ -137,10 +161,33 @@ public:
 	// the power usage, so a mouse is penalised for simply charging around
 	// as fast as possible and randomly collecting cheese - it needs to find
 	// its target carefully.
-	virtual float GetFitness()const
-	{
-		return This.cheesesFound > 0 ? static_cast<float>(This.cheesesFound) / This.DistanceTravelled.as<float>() : 0;
-	}
+	//virtual float GetFitness()const
+	//{
+
+		
+		//float energyEfficiency = This.PowerUsed > 0 ? static_cast<float>(This.cheesesFOund) / This.PowerUsed : 0;
+		//float speedScore = This.TimeTaken > 0 ? 1.0f / This.TimeTaken : 0;
+		//return (energyEfficiency + speedScore) 2.0f
+		//float cheesepower = This.cheesesFound > 0 ? static_cast<float>(This.cheesesFound) - This.PowerUsed.as<float>() : 0;
+		//float speedpenalty = 
+		//return cheesepower;
+	//}
+
+    virtual float GetFitness() const {
+	float minumSpeed = GetMinSpeed();
+	float maximSpeed = GetMaxSpeed();
+        const float PowerPenalty = 0.1f;
+        const float SpeedFactor = 0.000001f;
+        //const float OptimalSpeed = (minumSpeed + maximSpeed) / 2.0;
+
+        float averageSpeedEfficiency = std::abs((maximSpeed - minumSpeed));
+
+        float fitness = static_cast<float>(This.cheesesFound)/(This.PowerUsed) - (SpeedFactor * averageSpeedEfficiency);
+
+        return fitness > 0 ? fitness : 0; // Ensure fitness is non-negative
+    }
+
+
 
 	// Overloading the ToString method allows us to output a small amount of
 	// information which is visible in the status bar of the GUI when a
@@ -166,7 +213,7 @@ class MouseSimulation : public Simulation
 public:
 	MouseSimulation():
 	theGA(0.7f, 0.05f),	// Crossover probability of 0.7, mutation probability of 0.05
-//	theMice(30),		// 30 mice are in the population.
+	//theMice(100),		// 30 mice are in the population.
 	theMice(30, theGA), // 30 mice are in the population.
 	theCheeses(30)		// 30 cheeses are around at one time.
 	{
